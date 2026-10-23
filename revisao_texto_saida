@@ -1,0 +1,41 @@
+1. O que está sólido
+A diferença entre os grupos é real e robusta. Refiz o teste de quatro formas: base bruta, sem duplicatas, só a primeira visita por user_id e só os user_id presentes em um único grupo. O resultado não muda de direção nem de ordem de grandeza (p < 10⁻²⁰ em todas). O modelo logístico, ajustado por hora, dispositivo e país, dá odds ratio de 0,224, praticamente igual ao bruto (0,227).
+O Nível 0 é superior em todos os 8 países e em todos os 3 dispositivos.
+O qui-quadrado é o teste adequado para comparar duas proporções.
+O script está organizado em funções pequenas e fáceis de reaproveitar.
+2. O que precisa ser corrigido
+#	Problema	Evidência	Impacto
+1	Há 109 linhas duplicadas, e todas são conversões.	Linhas idênticas em todas as colunas, 82 no Nível 0 e 27 no Nível 1. Isso é 13,5% das 809 conversões.	Infla a conversão: 45,2% → 41,9% (Nível 0) e 16,9% → 14,1% (Nível 1). Também infla o volume por hora (às 9h, Nível 0: 92 → 70).
+2	“Rejeição” é a conversão com outro nome.	Os 1.496 registros com sessão zero são exatamente os 1.496 não convertidos. A rejeição (83,56%) é praticamente 1 − conversão (83,07%).	Não é um insight independente nem explica o porquê.
+3	“Abandonam a sessão instantaneamente” é uma leitura incorreta.	Pelo README, session_duration é o tempo na página de interesse.	Zero significa que o usuário não chegou à página, e não que saiu do site.
+4	Os “36 convertidos com 0 segundos ou nulo” são 36 nulos, e zeros não existem entre convertidos.	Das 36 linhas, 13 são duplicatas, então os nulos reais são 23.	A auditoria de tracking faz sentido, mas o problema principal são as conversões duplicadas.
+5	Os grupos estão desbalanceados (64,4% × 35,6%).	Teste contra 50/50: p ≈ 10⁻⁴⁴.	Se o desenho era 50/50, há falha de alocação. Se era 2/3 × 1/3, tudo bem. Só quem montou o teste sabe.
+6	A distribuição por hora difere entre os grupos.	O volume do Nível 0 varia muito ao longo do dia (p = 4×10⁻⁹) e o do Nível 1 é uniforme (p = 0,59).	Sugere que a alocação não foi uniformemente aleatória. O ajuste não alterou o efeito, mas a magnitude fica menos confiável.
+7	user_id não identifica uma pessoa.	Entre os ids repetidos, 85% mudam de país e 74% mudam de dispositivo. 332 ids aparecem nos dois grupos, contra ~353 esperados se os ids fossem sorteados ao acaso.	Trate as linhas como acessos/sessões, não como “usuários”. O texto diz “usuários” em vários pontos.
+3. Afirmações do seu texto, uma a uma
+Afirmação	Veredito
+Nível 0 converte mais, com significância estatística	✅ Confirmado. Diferença de 27,8 p.p. (IC 95%: 24,3 a 31,4) na base sem duplicatas.
+Tempo de sessão: Nível 0 = 18,8s, Nível 1 = 11,5s	✅ Diferença significativa (sem duplicatas: 19,1s × 11,2s, p < 10⁻⁷ em Welch e Mann-Whitney). ⚠️ O filtro mantém só quem converteu. Isso precisa ser dito, e os grupos podem ter composição diferente.
+Smartphone converte mais em ambas as configurações	⚠️ A ordem é verdadeira, mas as diferenças são ruído (p = 0,50 no Nível 0 e p = 0,37 no Nível 1).
+“Design focado no mobile”	❌ Não sustentado. O efeito do menu é igual nos três dispositivos (interação p = 0,75).
+Alemanha no Nível 1 = 3,57%	⚠️ Correto, mas são 3 conversões em 84 (IC 95%: 1,2% a 10,0%). Sobrevive à correção por 8 países (p = 0,012), mas o teste de heterogeneidade entre países não é significativo (p = 0,087). “Problema de idioma alemão” é hipótese, porque não há dado de idioma.
+Janela de alto engajamento das 07h às 11h	⚠️ Frágil. A janela foi escolhida depois de olhar os dados. Às 7h a conversão do Nível 0 é baixa (25%), e os picos reais são 8h–9h, 11h e 13h. São 24 faixas com 25 a 89 linhas cada, de um único dia (01/06/2024), sem saber o fuso dos 8 países.
+Inconsistência interna	O insight diz 07h–11h e a recomendação diz 09h–11h.
+Implementar o Nível 0 para 100% da base	⚠️ Direção correta, mas “definitivo” é forte para 1 dia de dados e uma alocação suspeita.
+4. O que fazer
+
+O que os dados mostram: o Nível 0 gera cerca de 3× mais conversões (41,9% × 14,1%), de forma consistente em todos os recortes, com diferença de 24 a 31 p.p. A análise é descritiva e válida só para esse dia e essa amostra.
+
+O que isso significa para o negócio: o acesso direto é claramente melhor que o aninhado. O texto não deve atribuir o efeito a mecanismos (clique, idioma, rejeição) que os dados não medem. A base também não permite recomendação por dispositivo ou por horário.
+
+Próximos passos, em ordem:
+
+Remover as duplicatas antes de tudo (df.drop_duplicates()) e refazer todos os números do texto. Os valores bons são os da base deduplicada.
+Reformular o insight da rejeição: “no Nível 1, 85,9% dos acessos não chegaram à página (vs 58,1% no Nível 0)”, sem causa atribuída. Os percentuais são 1 − conversão da base deduplicada.
+Responder Q1 pelo acesso à página (converted == 1): 588 × 112 na base deduplicada. O value_counts do grupo mede alocação de tráfego, e não o efeito do menu. Declare isso e cite o desbalanceamento 64/36.
+Adicionar IC 95% e a diferença em p.p. ao Q4, para mostrar o tamanho do efeito e não só o p-valor.
+Calcular os textos a partir dos dados (f-strings). Hoje os números estão escritos à mão e ficarão defasados se a base mudar.
+Suavizar a recomendação de 100% de rollout: “implementar o Nível 0, com confirmação em mais dias e investigação da alocação do teste”.
+Cortar ou reescrever as recomendações de mobile e horário: hoje são hipóteses, não achados.
+
+Também sugiro quebrar o parágrafo único do Q5 em tópicos curtos e corrigir os erros de digitação (“defivido”, “perceptivel”, “obstaculo”), principalmente se for para liderança.
