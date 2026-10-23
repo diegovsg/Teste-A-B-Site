@@ -1,0 +1,165 @@
+1. Preparação do modelo
+
+Carregue ab_test_data_limpa.xlsx como uma única tabela chamada ab_test, sem outras tabelas. Em Transformar dados:
+
+session_duration: número decimal, sem substituir nulos por zero.
+converted e hour_of_day: número inteiro. Em Ferramentas de coluna, deixe hour_of_day como “Não resumir”.
+
+Crie estas colunas calculadas (usadas no histograma e no gráfico 100% empilhado):
+
+Chegou na Página =
+IF(ab_test[converted] = 1; "Chegou à página"; "Não chegou")
+
+Faixa Início (s) =
+IF(ISBLANK(ab_test[session_duration]) || ab_test[session_duration] <= 0;
+   BLANK();
+   INT(ab_test[session_duration] / 5) * 5)
+
+Faixa de Duração =
+IF(ISBLANK(ab_test[Faixa Início (s)]);
+   BLANK();
+   ab_test[Faixa Início (s)] & "–" & (ab_test[Faixa Início (s)] + 5) & " s")
+
+Em Faixa de Duração, use Classificar por coluna e escolha Faixa Início (s). Sem isso, “10–15” aparece antes de “5–10”.
+
+2. Medidas (DAX)
+
+Troque ; por , se o seu Power BI usar a configuração regional em inglês. Formate as taxas como porcentagem com 1 casa e os tempos com 2 casas.
+
+Total de Acessos = COUNTROWS(ab_test)
+Acessos à Página = SUM(ab_test[converted])
+Taxa de Conversão = DIVIDE([Acessos à Página]; [Total de Acessos])
+
+Conversão Nível 0 = CALCULATE([Taxa de Conversão]; ab_test[group] = "Nível 0")
+Conversão Nível 1 = CALCULATE([Taxa de Conversão]; ab_test[group] = "Nível 1")
+Diferença de Conversão (p.p.) = ([Conversão Nível 0] - [Conversão Nível 1]) * 100
+
+Tempo Médio por Acesso (s) = AVERAGE(ab_test[session_duration])
+Tempo Médio de Quem Chegou (s) =
+CALCULATE(AVERAGE(ab_test[session_duration]); ab_test[session_duration] > 0)
+
+% de Quem Chegou na Faixa =
+DIVIDE(
+    CALCULATE(COUNTROWS(ab_test); ab_test[session_duration] > 0);
+    CALCULATE(COUNTROWS(ab_test); ab_test[session_duration] > 0;
+              REMOVEFILTERS(ab_test[Faixa de Duração]); REMOVEFILTERS(ab_test[Faixa Início (s)]))
+)
+
+Intervalos de confiança de 95%, para as barras de erro e o cartão da diferença:
+
+Conversão IC Inferior =
+VAR TotalAcessos = [Total de Acessos]
+VAR TaxaConversao = [Taxa de Conversão]
+VAR ZScore = 1.96
+RETURN
+DIVIDE(
+    TaxaConversao + ZScore ^ 2 / (2 * TotalAcessos)
+        - ZScore * SQRT(TaxaConversao * (1 - TaxaConversao) / TotalAcessos + ZScore ^ 2 / (4 * TotalAcessos ^ 2));
+    1 + ZScore ^ 2 / TotalAcessos
+)
+
+Conversão IC Superior é igual, trocando o - antes de ZScore * SQRT(...) por +.
+
+Diferença IC Inferior (p.p.) =
+VAR TaxaNivel0 = [Conversão Nível 0]
+VAR TaxaNivel1 = [Conversão Nível 1]
+VAR AcessosNivel0 = CALCULATE([Total de Acessos]; ab_test[group] = "Nível 0")
+VAR AcessosNivel1 = CALCULATE([Total de Acessos]; ab_test[group] = "Nível 1")
+VAR ErroPadrao = SQRT(TaxaNivel0 * (1 - TaxaNivel0) / AcessosNivel0
+                    + TaxaNivel1 * (1 - TaxaNivel1) / AcessosNivel1)
+RETURN (TaxaNivel0 - TaxaNivel1 - 1.96 * ErroPadrao) * 100
+
+Diferença IC Superior (p.p.) é igual, com + 1.96 * ErroPadrao.
+
+Título dinâmico, que acompanha os filtros:
+
+Título Resultado =
+VAR TaxaNivel0 = [Conversão Nível 0]
+VAR TaxaNivel1 = [Conversão Nível 1]
+RETURN
+IF(TaxaNivel0 > TaxaNivel1;
+   "Acesso direto leva " & FORMAT(DIVIDE(TaxaNivel0; TaxaNivel1); "0.0") & "× mais gente à página: "
+       & FORMAT(TaxaNivel0; "0.0%") & " contra " & FORMAT(TaxaNivel1; "0.0%");
+   "Nesta fatia, o acesso direto não supera o acesso sob aba geral")
+
+Esse título não testa significância. Em fatias pequenas, confira o Total de Acessos antes de falar dele.
+
+3. Páginas e visuais
+
+Todos os visuais usam group como legenda ou eixo. Em cada visual, defina a cor por categoria uma vez: Nível 0 = laranja 
+#F15F38, Nível 1 = navy 
+#1A2437, sempre os mesmos nas cinco páginas.
+
+Página	Visuais (campos)	Título do slide
+1. Resultado	Cartões: Conversão Nível 0, Conversão Nível 1, Diferença de Conversão (p.p.), Acessos à Página.
+Colunas agrupadas: eixo group, valor Taxa de Conversão, em Barras de erro use Conversão IC Superior e Conversão IC Inferior.
+Barras 100% empilhadas: eixo group, legenda Chegou na Página, valor Total de Acessos.
+Texto: Título Resultado como título da página.	“Acesso direto leva 3,0× mais gente à página” (já vem da medida)
+2. Segmentos	Barras agrupadas: eixo country, legenda group, valor Taxa de Conversão.
+Colunas agrupadas com Múltiplos pequenos por device.
+Matriz: linhas country, colunas group, valores Taxa de Conversão e Total de Acessos.
+Nesta página, desligue o efeito dos segmentadores (Editar interações).	“O ganho do acesso direto aparece em todos os países e dispositivos”
+3. Tempo e horário	Duas colunas lado a lado: Tempo Médio de Quem Chegou (s) e Tempo Médio por Acesso (s), eixo group.
+Colunas agrupadas: eixo Faixa de Duração, legenda group, valor % de Quem Chegou na Faixa.
+Linhas: eixo hour_of_day, legenda group, valor Taxa de Conversão (mais outra linha com Total de Acessos).
+Caixa de texto: “1 dia de dados, fuso horário desconhecido”.	“Quem chega fica mais tempo no acesso direto, e mais gente chega” e “Padrão por hora é hipótese: só 1 dia”
+4. Qualidade dos dados	Tabela com os 4 cenários de robustez (veja abaixo).
+Caixas de texto com as ressalvas.	“A conclusão se mantém depois de limpar a base”
+5. Recomendações	Cinco blocos (retângulo arredondado + texto) com etiqueta Agir, Investigar ou Não priorizar.	“O que fazer com o resultado”
+
+Segmentadores (device e country): coloque em formato de lista suspensa, no topo, e sincronize entre as páginas em Exibir > Sincronizar segmentadores.
+
+Página 4: o que digitar. Esses números vêm do script (p-valores e contagens da base bruta não existem no arquivo limpo). Use Inserir dados para a tabela e caixas de texto para o resto:
+
+Cenário	Conv. Nível 0	Conv. Nível 1	Diferença (p.p.)
+Base bruta (com duplicatas)	45,15%	16,93%	28,22
+Base sem duplicatas (principal)	41,94%	14,11%	27,83
+1ª visita de cada user_id	38,60%	13,78%	24,82
+Só user_id vistos em um grupo	41,88%	14,71%	27,17
+
+Caixas de texto (ressalvas, todas com dados do script):
+
+109 duplicatas removidas (4,7% da base, 100% eram conversões).
+Divisão do tráfego de 63,8% / 36,2% (p < 0,001 contra 50/50).
+599 user_id repetidos, 87% deles com país diferente, 332 nos dois grupos.
+Odds ratio 4,40 (bruto) e 4,46 (ajustado por hora, dispositivo e país); p < 0,001.
+
+Página 5: conteúdo das cinco recomendações.
+
+Agir: adotar o Nível 0, com confirmação em mais dias.
+Agir: corrigir o tracking (conversões duplicadas e 23 conversões sem duração).
+Investigar: a alocação do teste (64/36, user_id, volume por hora).
+Investigar: Alemanha no Nível 1 (3 conversões em 84 acessos; é indício, não causa).
+Não priorizar: foco em mobile e campanhas por horário. O efeito é igual entre dispositivos (p = 0,75) e o horário vem de 1 dia.
+4. Identidade visual Grownt
+Salve este tema como grownt.json e carregue em Exibir > Temas > Procurar temas:
+json
+{
+  "name": "Grownt",
+  "dataColors": ["#F15F38", "#1A2437", "#99C5C8", "#697480", "#B8C9D3", "#FAA634"],
+  "background": "#FFFFFF",
+  "foreground": "#1A2437",
+  "tableAccent": "#F15F38"
+}
+Em cada página, Formatar página > Tela de fundo: cor Sand 
+#DFDECB, transparência 0%.
+Visuais em branco, com Efeitos > Borda do visual ligada e o maior raio de canto permitido.
+Personalizar tema atual > Texto > Família da fonte: DM Sans. A fonte precisa estar instalada na máquina de quem apresenta e de quem abre o relatório. No serviço do Power BI, quem não a tiver verá uma fonte de substituição.
+Laranja só para o Nível 0 e para a etapa ativa da navegação. Navy para texto e para o Nível 1.
+5. Navegação e apresentação
+Inserir > Botões > Navegador > Navegador de páginas no topo de todas as páginas.
+Um botão com indicador (bookmark) que redefine os segmentadores, para voltar a “Todos” entre perguntas da plateia.
+Para apresentar: Exibir > Tela inteira no Desktop, ou Exportar > PowerPoint a partir do serviço.
+Ordem sugerida de fala: Resultado → Segmentos → Tempo e horário → Qualidade dos dados → Recomendações. A página 4 vem antes das recomendações para antecipar a pergunta “dá para confiar?”.
+6. Conferência com a base completa, sem filtros
+Medida	Nível 0	Nível 1
+Taxa de Conversão	41,9%	14,1%
+Diferença de Conversão	27,8 p.p.	
+Diferença IC 95%	24,3 a 31,4	
+Acessos à Página	588	112
+Tempo Médio por Acesso	7,87 s	1,54 s
+Tempo Médio de Quem Chegou	19,1 s	11,2 s
+
+Com os segmentadores para Alemanha, o Nível 0 deve mostrar 187 acessos e 43,9%, e o Nível 1 deve mostrar 84 acessos e 3,6% (3 conversões). Se os números divergirem, o primeiro suspeito é a base carregada sem a remoção das duplicatas.
+
+Se algum visual não se comportar como descrito, me diga qual e eu ajusto a fórmula.
