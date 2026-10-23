@@ -1,0 +1,130 @@
+--- Auditoria da base ---
+Linhas brutas: 2305 | duplicatas exatas removidas: 109 (100% eram conversões) | linhas analisadas: 2196
+Período: 2024-06-01 00:00:00 a 2024-06-01 23:58:00 (1 dia)
+Divisão do tráfego: 63,8% Nível 0 / 36,2% Nível 1 (p < 0,001 contra 50/50)
+user_id: 1295 únicos em 2196 linhas; 599 repetidos, dos quais 87% com país diferente e 332 nos dois grupos
+Duração zero: 1496 entre não convertidos e 0 entre convertidos | duração nula: 23, dos quais 23 entre convertidos
+Balanceamento entre grupos (p-valor do qui-quadrado): device = 0,124, country = 0,160, hour = 0,003
+
+--- Q1: Acessos à página de interesse ---
+         Trafego_Total  Acessos_Pagina  Pct_do_Trafego
+group                                                 
+Nível 0           1402             588            63.8
+Nível 1            794             112            36.2
+
+--- Q2: Tempo de sessão (segundos) ---
+group                Nível 0  Nível 1
+N_Acessos            1383.00   790.00
+N_Chegaram            569.00   108.00
+Pct_Chegaram           41.14    13.67
+Media_Quem_Chegou      19.13    11.24
+Mediana_Quem_Chegou    18.62    12.36
+Desvio_Quem_Chegou     16.76     9.39
+Media_Por_Acesso        7.87     1.54
+
+Diferença Nível 0 - Nível 1 (segundos):
+                              Dif_Media_s  IC95_inf  IC95_sup  p_Welch p_MannWhitney
+Quem chegou à página                 7.89      5.64     10.15  < 0,001       < 0,001
+Por acesso (zeros incluídos)         6.33      5.50      7.17  < 0,001       < 0,001
+
+--- Q3: Conversão (%) ---
+            N  Conversoes  Taxa_Pct  IC95_inf  IC95_sup
+group                                                  
+Nível 0  1402         588     41.94     39.38     44.54
+Nível 1   794         112     14.11     11.86     16.70
+
+--- Q4: Teste estatístico (conversão) ---
+H0: as taxas de conversão são iguais entre os grupos.
+Chi2 = 179,58 | p = 6.00e-41 | diferença significativa (rejeita H0)
+Diferença = 27,8 p.p. (IC 95%: 24,3 a 31,4) | odds ratio = 4,40
+
+Robustez:
+                                 N_N0  N_N1  Conv_N0_Pct  Conv_N1_Pct  Dif_pp  P_valor
+Cenario                                                                               
+Base bruta (com duplicatas)      1484   821        45.15        16.93   28.22  < 0,001
+Base sem duplicatas (principal)  1402   794        41.94        14.11   27.83  < 0,001
+1ª visita de cada user_id         816   479        38.60        13.78   24.82  < 0,001
+Só user_id vistos em um grupo     936   367        41.88        14.71   27.17  < 0,001
+Odds ratio Nível 0 vs Nível 1: bruto = 4,40 | ajustado por hora, dispositivo e país = 4,46 (IC 95%: 3,53 a 5,63)
+
+--- Análise por dispositivo ---
+       device  Acessos_N0  Conv_N0_Pct  Acessos_N1  Conversoes_N1  Conv_N1_Pct  Dif_pp p_Fisher
+0     Desktop         461        41.21         295             37        12.54   28.67  < 0,001
+1  Smartphone         460        44.13         240             40        16.67   27.46  < 0,001
+2      Tablet         481        40.54         259             35        13.51   27.03  < 0,001
+  p_entre_segmentos_Nível 0: p 0,498
+  p_entre_segmentos_Nível 1: p 0,374
+  p_interacao: p 0,748
+
+--- Análise por país ---
+       country  Acessos_N0  Conv_N0_Pct  Acessos_N1  Conversoes_N1  Conv_N1_Pct  Dif_pp p_Fisher
+0     Alemanha         187        43.85          84              3         3.57   40.28  < 0,001
+1    Austrália         161        38.51         113             12        10.62   27.89  < 0,001
+2       Brasil         194        38.14         104             16        15.38   22.76  < 0,001
+3       Canadá         156        44.23         109             19        17.43   26.80  < 0,001
+4          EUA         166        46.39          95             18        18.95   27.44  < 0,001
+5       França         176        38.64          86             12        13.95   24.68  < 0,001
+6  Reino Unido         190        40.53         108             16        14.81   25.71  < 0,001
+7        Índia         172        45.93          95             16        16.84   29.09  < 0,001
+  p_entre_segmentos_Nível 0: p 0,545
+  p_entre_segmentos_Nível 1: p 0,087
+  p_interacao: p 0,097
+
+--- Q6: Tendência ao longo do dia ---
+      Acessos         Taxa_Pct        
+group Nível 0 Nível 1  Nível 0 Nível 1
+hour                                  
+0        48.0    27.0     33.3     7.4
+1        48.0    25.0     22.9    20.0
+2        47.0    42.0     36.2    14.3
+3        57.0    34.0     28.1     2.9
+4        44.0    40.0     31.8     7.5
+5        41.0    30.0     36.6    16.7
+6        57.0    28.0     31.6     7.1
+7        51.0    36.0     25.5    13.9
+8        71.0    44.0     57.7    22.7
+9        70.0    29.0     60.0     6.9
+10       68.0    41.0     41.2    26.8
+11       83.0    27.0     67.5    22.2
+12       56.0    28.0     51.8    10.7
+13       64.0    33.0     60.9     9.1
+14       89.0    30.0     44.9    10.0
+15       88.0    34.0     43.2    17.6
+16       53.0    38.0     37.7    23.7
+17       42.0    34.0     47.6    14.7
+18       67.0    33.0     32.8    21.2
+19       45.0    31.0     33.3     9.7
+20       73.0    25.0     34.2    16.0
+21       51.0    37.0     35.3    16.2
+22       48.0    38.0     41.7     5.3
+23       41.0    30.0     36.6    10.0
+  p_conversao_varia_por_hora_Nível 0: p < 0,001
+  p_volume_uniforme_Nível 0: p < 0,001
+  p_conversao_varia_por_hora_Nível 1: p 0,201
+  p_volume_uniforme_Nível 1: p 0,590
+
+--- Q5: Insights derivados ---
+
+[1] O que os dados mostram
+- Conversão (acesso à página): Nível 0 = 41,9% vs Nível 1 = 14,1%. Diferença de 27,8 p.p. (IC 95%: 24,3 a 31,4), odds ratio 4,40, p < 0,001.
+- A diferença é significativa em 4 dos 4 cenários testados (base bruta, sem duplicatas, 1ª visita de cada id, só ids de um grupo; entre 24,8 e 28,2 p.p.) e após ajuste por hora, dispositivo e país (odds ratio ajustado = 4,46, bruto = 4,40).
+- Não chegaram à página: 86,3% no Nível 1 vs 58,9% no Nível 0. É o complemento da conversão, não uma métrica independente. Duração zero significa 'não chegou à página' e não 'saiu do site'.
+- Tempo na página: entre quem chegou, 19,1s (Nível 0) vs 11,2s (Nível 1). Por acesso, incluindo quem não chegou, 7,87s vs 1,54s (dif. 6,33s; p Mann-Whitney < 0,001). A visão 'quem chegou' compara públicos selecionados: use-a com cautela.
+- Consistência: Nível 0 convertendo mais em 8 de 8 países e em 3 de 3 dispositivos.
+- Dispositivo: não há evidência de diferença relevante (entre dispositivos: p 0,498 no Nível 0 e 0,374 no Nível 1; interação grupo x dispositivo: p 0,748).
+- País: menor conversão no Nível 1 em Alemanha (3 de 84, 3,6%; IC 95%: 1,2% a 10,0%), contra 15,4% nos demais; p com Bonferroni = 0,012. Teste geral de diferença entre países no Nível 1: p 0,087.
+- Horário: a conversão por hora varia no Nível 0 (p < 0,001) e sem evidência de variação no Nível 1 (p 0,201). Cada hora tem poucos acessos e a base cobre 1 dia, então o padrão é hipótese.
+
+[2] O que isso significa para o negócio
+- A taxa de acesso à página no Nível 0 é 3,0 vezes a do Nível 1 (+197%).
+- Por que isso acontece (menos cliques, aba escondida etc.) é hipótese: a base não tem trilha de navegação.
+- O efeito do menu é semelhante nos três dispositivos: não há evidência para um desenho específico por dispositivo.
+- O padrão por horário vem de 1 dia de dados e de fuso horário desconhecido: serve como hipótese para novos testes, não como base para campanhas.
+- Cuidados na leitura: 1 dia de dados; grupos com 63,8% / 36,2% do tráfego (SRM p < 0,001 contra 50/50); user_id não funciona como identificador de pessoa.
+
+--- Q7: Recomendações ---
+1. Adotar o Nível 0, com confirmação: a direção é clara, mas a decisão de 100% da base deve esperar mais dias de teste e a explicação da alocação desigual.
+2. Auditar o tracking: 109 linhas duplicadas (4,7% da base; 100% eram conversões, o que sugere evento de conversão disparado duas vezes) e 23 conversões únicas sem duração medida.
+3. Auditar a alocação: como o user_id é gerado, se a atribuição é por usuário ou por sessão, por que 63,8% do tráfego caiu no Nível 0 e por que o volume por hora difere entre os grupos (p do balanceamento por hora 0,003).
+4. Investigar Alemanha no Nível 1 (verificar renderização, idioma/localização e tracking do menu); é indício, e não causa comprovada.
+5. Não priorizar foco em mobile nem campanhas por horário com base nesta amostra; repetir a análise com mais dias antes de decidir.
