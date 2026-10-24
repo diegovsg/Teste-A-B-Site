@@ -70,7 +70,7 @@ Odds ratio Nível 0 vs Nível 1: bruto = 4,40 | ajustado por hora, dispositivo e
   p_entre_segmentos_Nível 1: p 0,087
   p_interacao: p 0,097
 
---- Q6: Tendência ao longo do dia ---
+--- Q6: Existe alguma tendência temporal (comportamento ao longo dia) nos acessos ou conversões para cada configuração do menu? ---
       Acessos         Taxa_Pct        
 group Nível 0 Nível 1  Nível 0 Nível 1
 hour                                  
@@ -103,7 +103,9 @@ hour
   p_conversao_varia_por_hora_Nível 1: p 0,201
   p_volume_uniforme_Nível 1: p 0,590
 
---- Q5: Insights derivados ---
+Existe uma tendência temporal. Como mostra a imagem, gerada pelo código, há um pico de acessos no início da tarde, das 12h às 15h. Porém, curiosamente, nesse mesmo período a taxa de conversão cai. Por outro lado, durante a manhã, tanto a quantidade de acessos quanto a conversão aumentam simultaneamente, o que sugere que este seja o horário de maior foco e propensão à conversão dos usuários que é entre 8h às 11h. Nesse intervalo, temos um alto volume de acessos acompanhado da nossa maior taxa de conversão, atingindo picos próximos a 60% e 67%
+
+--- Q5: Quais insights podem ser derivados dos dados para otimizar a navegação do site e aumentar o engajamento dos usuários? ---
 
 [1] O que os dados mostram
 - Conversão (acesso à página): Nível 0 = 41,9% vs Nível 1 = 14,1%. Diferença de 27,8 p.p. (IC 95%: 24,3 a 31,4), odds ratio 4,40, p < 0,001.
@@ -112,19 +114,11 @@ hour
 - Tempo na página: entre quem chegou, 19,1s (Nível 0) vs 11,2s (Nível 1). Por acesso, incluindo quem não chegou, 7,87s vs 1,54s (dif. 6,33s; p Mann-Whitney < 0,001). A visão 'quem chegou' compara públicos selecionados: use-a com cautela.
 - Consistência: Nível 0 convertendo mais em 8 de 8 países e em 3 de 3 dispositivos.
 - Dispositivo: não há evidência de diferença relevante (entre dispositivos: p 0,498 no Nível 0 e 0,374 no Nível 1; interação grupo x dispositivo: p 0,748).
-- País: menor conversão no Nível 1 em Alemanha (3 de 84, 3,6%; IC 95%: 1,2% a 10,0%), contra 15,4% nos demais; p com Bonferroni = 0,012. Teste geral de diferença entre países no Nível 1: p 0,087.
-- Horário: a conversão por hora varia no Nível 0 (p < 0,001) e sem evidência de variação no Nível 1 (p 0,201). Cada hora tem poucos acessos e a base cobre 1 dia, então o padrão é hipótese.
 
-[2] O que isso significa para o negócio
-- A taxa de acesso à página no Nível 0 é 3,0 vezes a do Nível 1 (+197%).
-- Por que isso acontece (menos cliques, aba escondida etc.) é hipótese: a base não tem trilha de navegação.
-- O efeito do menu é semelhante nos três dispositivos: não há evidência para um desenho específico por dispositivo.
-- O padrão por horário vem de 1 dia de dados e de fuso horário desconhecido: serve como hipótese para novos testes, não como base para campanhas.
-- Cuidados na leitura: 1 dia de dados; grupos com 63,8% / 36,2% do tráfego (SRM p < 0,001 contra 50/50); user_id não funciona como identificador de pessoa.
+- A taxa de acesso à página no Nível 0 é 3,0 vezes(41,94 / 14,11 = 2,972) a do Nível 1 (+197%), sendo a escolha correta para seguir após o teste ab. Entretanto, embora o Nível 0 seja o vencedor, como recomendação sugiro incluir a manutenção do teste por mais dias, porque os dados refletem apenas 1 dia de coleta, com um fuso horário desconhecido, o que invalida qualquer otimização focada em horários específicos.Além disso, a alocação de usuários no teste A/B demonstrou uma falha do tráfego não foi dividido 50/50.
 
---- Q7: Recomendações ---
+--- Q7:Quais recomendações você faria com base nos dados analisados para otimizar a navegação do site?---
 1. Adotar o Nível 0, com confirmação: a direção é clara, mas a decisão de 100% da base deve esperar mais dias de teste e a explicação da alocação desigual.
-2. Auditar o tracking: 109 linhas duplicadas (4,7% da base; 100% eram conversões, o que sugere evento de conversão disparado duas vezes) e 23 conversões únicas sem duração medida.
+2. Auditar o tracking: 109 linhas duplicadas (4,7% da base; 100% eram conversões, o que pode sugerir um evento de conversão disparado duas vezes) e 23 conversões únicas sem duração medida, vinheram com null.
 3. Auditar a alocação: como o user_id é gerado, se a atribuição é por usuário ou por sessão, por que 63,8% do tráfego caiu no Nível 0 e por que o volume por hora difere entre os grupos (p do balanceamento por hora 0,003).
-4. Investigar Alemanha no Nível 1 (verificar renderização, idioma/localização e tracking do menu); é indício, e não causa comprovada.
-5. Não priorizar foco em mobile nem campanhas por horário com base nesta amostra; repetir a análise com mais dias antes de decidir.
+4. Focar em no periodo da manha para tentar adquirir mais acessos, mas ter um novo o monitoramento do Nível 0 por mais dias para confirmar a tendência temporal (o pico de conversão entre 8h e 11h) e validar o horário como um padrão confirmar o fuso horário e se a tendência se confirmar em uma janela de dados maior, sugerir a atividade de sincronizar notificações push, campanhas de e-mail com esse horário, campanha de marketing no horário de pico.

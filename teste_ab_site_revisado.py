@@ -1,7 +1,6 @@
 """
 Teste A/B do menu lateral: Nível 0 (acesso direto) x Nível 1 (sob aba geral).
 
-Versão revisada. Principais mudanças em relação à versão anterior:
   1. Remove duplicatas exatas (todas eram conversões) antes de qualquer cálculo.
   2. Audita a base: desbalanceamento 64/36 (SRM), user_id instável, balanceamento por hora.
   3. Q1 responde por acessos à página (converted == 1) e mostra o tráfego separado.
@@ -10,6 +9,7 @@ Versão revisada. Principais mudanças em relação à versão anterior:
   5. Q3/Q4 trazem IC 95%, diferença em p.p., odds ratio e testes de robustez.
   6. Dispositivo, país e hora têm testes de significância (evita ler ruído como padrão).
   7. Textos de insights e recomendações são calculados a partir dos dados (sem números digitados).
+  8. Exporta a base tratada para uso em ferramentas de BI (Power BI/Looker).
 
 Dependências: pandas, numpy, matplotlib, seaborn, scipy, statsmodels
     pip install pandas numpy matplotlib seaborn scipy statsmodels openpyxl
@@ -25,7 +25,7 @@ from statsmodels.stats.proportion import proportion_confint
 
 CAMINHO_ARQUIVO = 'ab_test_data 1.xlsx'
 GRUPO_NIVEL_0 = 'Nível 0'       # acesso direto à página (controle)
-GRUPO_NIVEL_1 = 'Nível 1'       # acesso sob a aba geral (variante)
+GRUPO_NIVEL_1 = 'Nível 1'       # acesso sob a aba geral (nova escolha)
 NIVEL_SIGNIFICANCIA = 0.05      # p-valores abaixo disso são considerados significativos
 
 
@@ -59,7 +59,7 @@ def imprimir_p_valores(resultados_testes: dict):
 
 
 # ----------------------------------------------------------------------------
-# Carga e preparação
+# Carga, Preparação e Exportação
 # ----------------------------------------------------------------------------
 def carregar_dados(caminho_arquivo: str) -> pd.DataFrame:
     """Carrega a base e cria a coluna 'hour' a partir do timestamp."""
@@ -72,7 +72,7 @@ def carregar_dados(caminho_arquivo: str) -> pd.DataFrame:
 def remover_duplicatas(base_bruta: pd.DataFrame):
     """
     Remove linhas idênticas em TODAS as colunas (mesmo id, minuto, grupo, dispositivo, país
-    e duração até a 6ª casa decimal). Não pode ser a mesma pessoa voltando: é o mesmo
+    e duração até a 6ª casa decimal). Obs: Não pode ser a mesma pessoa voltando: é o mesmo
     registro gravado duas vezes. Retorna a base limpa e um resumo do que foi removido.
     """
     linha_duplicada = base_bruta.duplicated()
@@ -83,7 +83,7 @@ def remover_duplicatas(base_bruta: pd.DataFrame):
                                            if linha_duplicada.any() else np.nan),
         'por_grupo': base_bruta.loc[linha_duplicada, 'group'].value_counts().to_dict(),
     }
-    base_sem_duplicatas = base_bruta.loc[~linha_duplicada].copy()
+    base_sem_duplicatas = base_bruta.loc[~linha_duplicada].copy() #Procura as linhas que não são duplicadas e cria uma cópia do DataFrame sem as duplicatas.
     return base_sem_duplicatas, resumo_duplicatas
 
 
@@ -116,13 +116,23 @@ def auditar_base(base_sem_duplicatas: pd.DataFrame) -> dict:
         'zeros_entre_convertidos': int((duracao_zero & converteu).sum()),
         'zeros_entre_nao_convertidos': int((duracao_zero & ~converteu).sum()),
         'pct_trafego_nivel_0': total_nivel_0 / total_linhas * 100,
-        # SRM: se o desenho era 50/50, a proporção observada indica falha de alocação
+        # SRM - Sample Ratio Mismatch: se o desenho era 50/50, a proporção observada indica falha de alocação
         'p_valor_divisao_50_50': stats.binomtest(total_nivel_0, total_linhas, 0.5).pvalue,
         # Balanceamento: grupos comparáveis em dispositivo, país e hora?
         'p_valor_balanceamento': {
             coluna: chi2_contingency(pd.crosstab(base_sem_duplicatas[coluna], base_sem_duplicatas['group']))[1]
             for coluna in ['device', 'country', 'hour']},
     }
+
+
+def exportar_base_limpa(base_sem_duplicatas: pd.DataFrame, nome_arquivo_saida: str = 'ab_test_data_limpa.xlsx'):
+    """
+    Exporta a base de dados tratada para Excel, removendo as duplicatas exatas 
+    e removendo as linhas com tempo de sessão nulo (null), para uso no Power BI.
+    """
+    base_para_exportacao = base_sem_duplicatas.dropna(subset=['session_duration']).copy()
+    base_para_exportacao.to_excel(nome_arquivo_saida, index=False)
+    print(f"\n[!] Base limpa exportada com sucesso para '{nome_arquivo_saida}' (Tamanho: {len(base_para_exportacao)} linhas).")
 
 
 # ----------------------------------------------------------------------------
@@ -146,7 +156,7 @@ def calcular_acessos(base_sem_duplicatas: pd.DataFrame) -> pd.DataFrame:
 def calcular_estatisticas_tempo(base_sem_duplicatas: pd.DataFrame) -> pd.DataFrame:
     """
     Q2: duas visões do tempo na página de interesse.
-      - Quem chegou: só session_duration > 0. Zero = não chegou à página (não é erro).
+      - Quem chegou: só session_duration > 0. Zero = não chegou à página.
       - Por acesso: zeros incluídos. Sem seleção, mistura 'chegar' e 'ficar'.
     Nulos (convertidos sem duração medida) são dado faltante e saem dos dois cálculos.
     """
@@ -156,13 +166,13 @@ def calcular_estatisticas_tempo(base_sem_duplicatas: pd.DataFrame) -> pd.DataFra
     duracao_quem_chegou = base_quem_chegou.groupby('group')['session_duration']
     tabela_tempo = pd.DataFrame({
         'N_Acessos': base_com_duracao.groupby('group').size(),
-        'N_Chegaram': base_quem_chegou.groupby('group').size(),
+        'N_Chegaram (session_duration > 0)': base_quem_chegou.groupby('group').size(),
         'Media_Quem_Chegou': duracao_quem_chegou.mean(),
         'Mediana_Quem_Chegou': duracao_quem_chegou.median(),
         'Desvio_Quem_Chegou': duracao_quem_chegou.std(),
         'Media_Por_Acesso': base_com_duracao.groupby('group')['session_duration'].mean(),
     })
-    tabela_tempo.insert(2, 'Pct_Chegaram', tabela_tempo['N_Chegaram'] / tabela_tempo['N_Acessos'] * 100)
+    tabela_tempo.insert(2, 'Pct_Chegaram', tabela_tempo['N_Chegaram (session_duration > 0)'] / tabela_tempo['N_Acessos'] * 100)
     return tabela_tempo.round(2)
 
 
@@ -450,7 +460,7 @@ def plotar_tendencias_temporais(base_horas_grupo: pd.DataFrame):
 
 
 # ----------------------------------------------------------------------------
-# Q5 e Q7: textos calculados a partir dos resultados
+# Q5 e Q7
 # ----------------------------------------------------------------------------
 def imprimir_insights_e_recomendacoes(resultados: dict):
     resultado_conversao = resultados['resultado_conversao']
@@ -481,97 +491,6 @@ def imprimir_insights_e_recomendacoes(resultados: dict):
         GRUPO_NIVEL_1: 'varia' if p_hora_nivel_1 < NIVEL_SIGNIFICANCIA else 'sem evidência de variação',
     }
     nivel_0_superior = resultado_conversao['significativo'] and resultado_conversao['diferenca_pp'] > 0
-
-    print('\n--- Q5: Insights derivados ---')
-    print('\n[1] O que os dados mostram')
-    print(f"- Conversão (acesso à página): Nível 0 = {formatar_numero(resultado_conversao['taxa_nivel_0'])}% vs "
-          f"Nível 1 = {formatar_numero(resultado_conversao['taxa_nivel_1'])}%. "
-          f"Diferença de {formatar_numero(resultado_conversao['diferenca_pp'])} p.p. "
-          f"(IC 95%: {formatar_numero(resultado_conversao['ic95_inferior_pp'])} a "
-          f"{formatar_numero(resultado_conversao['ic95_superior_pp'])}), "
-          f"odds ratio {formatar_numero(resultado_conversao['odds_ratio'], 2)}, "
-          f"p {formatar_p_valor(resultado_conversao['p_valor'])}.")
-    print(f"- A diferença é significativa em {int((tabela_robustez['P_valor'] < NIVEL_SIGNIFICANCIA).sum())} dos "
-          f"{len(tabela_robustez)} cenários testados "
-          f"(base bruta, sem duplicatas, 1ª visita de cada id, só ids de um grupo; "
-          f"entre {formatar_numero(tabela_robustez['Dif_pp'].min())} e "
-          f"{formatar_numero(tabela_robustez['Dif_pp'].max())} p.p.) "
-          f"e após ajuste por hora, dispositivo e país (odds ratio ajustado = "
-          f"{formatar_numero(odds_ratios['ajustado']['odds_ratio'], 2)}, "
-          f"bruto = {formatar_numero(odds_ratios['bruto']['odds_ratio'], 2)}).")
-    print(f"- Não chegaram à página: {formatar_numero(100 - tempo_nivel_1['Pct_Chegaram'])}% no Nível 1 vs "
-          f"{formatar_numero(100 - tempo_nivel_0['Pct_Chegaram'])}% no Nível 0. "
-          f"É o complemento da conversão, não uma métrica independente. Duração zero significa "
-          f"'não chegou à página' e não 'saiu do site'.")
-    print(f"- Tempo na página: entre quem chegou, {formatar_numero(tempo_nivel_0['Media_Quem_Chegou'])}s (Nível 0) vs "
-          f"{formatar_numero(tempo_nivel_1['Media_Quem_Chegou'])}s (Nível 1). Por acesso, incluindo quem não chegou, "
-          f"{formatar_numero(tempo_nivel_0['Media_Por_Acesso'], 2)}s vs "
-          f"{formatar_numero(tempo_nivel_1['Media_Por_Acesso'], 2)}s "
-          f"(dif. {formatar_numero(teste_tempo_por_acesso['Dif_Media_s'], 2)}s; "
-          f"p Mann-Whitney {formatar_p_valor(teste_tempo_por_acesso['p_MannWhitney'])}). "
-          f"A visão 'quem chegou' compara públicos selecionados: use-a com cautela.")
-    print(f"- Consistência: Nível 0 convertendo mais em {testes_pais['qtd_segmentos_nivel_0_maior']} de "
-          f"{testes_pais['qtd_segmentos']} países e em {testes_dispositivo['qtd_segmentos_nivel_0_maior']} de "
-          f"{testes_dispositivo['qtd_segmentos']} dispositivos.")
-    print(f"- Dispositivo: {'há' if ha_diferenca_entre_dispositivos else 'não há'} evidência de diferença relevante "
-          f"(entre dispositivos: p {formatar_p_valor(p_dispositivos_nivel_0)} no Nível 0 e "
-          f"{formatar_p_valor(p_dispositivos_nivel_1)} no Nível 1; "
-          f"interação grupo x dispositivo: p {formatar_p_valor(testes_dispositivo['p_interacao'])}).")
-    print(f"- País: menor conversão no Nível 1 em {pais_critico['segmento']} "
-          f"({pais_critico['conversoes']} de {pais_critico['total_acessos']}, "
-          f"{formatar_numero(pais_critico['taxa_segmento'])}%; "
-          f"IC 95%: {formatar_numero(pais_critico['ic95_inferior'])}% a "
-          f"{formatar_numero(pais_critico['ic95_superior'])}%), contra "
-          f"{formatar_numero(pais_critico['taxa_demais_segmentos'])}% nos demais; "
-          f"p com Bonferroni = {formatar_p_valor(pais_critico['p_valor_bonferroni'])}. "
-          f"Teste geral de diferença entre países no Nível 1: "
-          f"p {formatar_p_valor(testes_pais[f'p_entre_segmentos_{GRUPO_NIVEL_1}'])}.")
-    print(f"- Horário: a conversão por hora {conversao_varia_por_hora[GRUPO_NIVEL_0]} no Nível 0 "
-          f"(p {formatar_p_valor(p_hora_nivel_0)}) e {conversao_varia_por_hora[GRUPO_NIVEL_1]} no Nível 1 "
-          f"(p {formatar_p_valor(p_hora_nivel_1)}). Cada hora tem poucos acessos e a base cobre "
-          f"{formatar_dias(auditoria['dias'])}, então o padrão é hipótese.")
-
-    print('\n[2] O que isso significa para o negócio')
-    if nivel_0_superior:
-        print(f"- A taxa de acesso à página no Nível 0 é "
-              f"{formatar_numero(1 + resultado_conversao['lift_relativo_pct'] / 100)} vezes a do Nível 1 "
-              f"(+{formatar_numero(resultado_conversao['lift_relativo_pct'], 0)}%).")
-    else:
-        print('- Não há evidência estatística de que o Nível 0 supere o Nível 1 nesta amostra.')
-    print('- Por que isso acontece (menos cliques, aba escondida etc.) é hipótese: a base não tem trilha de navegação.')
-    if not ha_diferenca_entre_dispositivos:
-        print('- O efeito do menu é semelhante nos três dispositivos: não há evidência para um desenho '
-              'específico por dispositivo.')
-    print(f"- O padrão por horário vem de {formatar_dias(auditoria['dias'])} de dados e de fuso horário desconhecido: "
-          f"serve como hipótese para novos testes, não como base para campanhas.")
-    print(f"- Cuidados na leitura: {formatar_dias(auditoria['dias'])} de dados; grupos com "
-          f"{formatar_numero(auditoria['pct_trafego_nivel_0'])}% / "
-          f"{formatar_numero(100 - auditoria['pct_trafego_nivel_0'])}% do tráfego "
-          f"(SRM p {formatar_p_valor(auditoria['p_valor_divisao_50_50'])} contra 50/50); "
-          f"user_id não funciona como identificador de pessoa.")
-
-    print('\n--- Q7: Recomendações ---')
-    if nivel_0_superior:
-        print('1. Adotar o Nível 0, com confirmação: a direção é clara, mas a decisão de 100% da base deve '
-              'esperar mais dias de teste e a explicação da alocação desigual.')
-    else:
-        print('1. Manter o teste em andamento: ainda não há evidência de diferença entre as configurações.')
-    print(f"2. Auditar o tracking: {resumo_duplicatas['removidas']} linhas duplicadas "
-          f"({formatar_numero(resumo_duplicatas['pct_removidas'])}% da base; "
-          f"{formatar_numero(resumo_duplicatas['pct_conversoes_entre_removidas'], 0)}% eram conversões, "
-          f"o que sugere evento de conversão disparado duas vezes) e "
-          f"{auditoria['nulos_entre_convertidos']} conversões únicas sem duração medida.")
-    print(f"3. Auditar a alocação: como o user_id é gerado, se a atribuição é por usuário ou por sessão, "
-          f"por que {formatar_numero(auditoria['pct_trafego_nivel_0'])}% do tráfego caiu no Nível 0 e por que o "
-          f"volume por hora difere entre os grupos "
-          f"(p do balanceamento por hora {formatar_p_valor(auditoria['p_valor_balanceamento']['hour'])}).")
-    print(f"4. Investigar {pais_critico['segmento']} no Nível 1 "
-          f"(verificar renderização, idioma/localização e tracking do menu); "
-          f"é indício, e não causa comprovada.")
-    acoes_nao_priorizadas = ([] if ha_diferenca_entre_dispositivos else ['foco em mobile']) + ['campanhas por horário']
-    print(f"5. Não priorizar {' nem '.join(acoes_nao_priorizadas)} com base nesta amostra; "
-          f"repetir a análise com mais dias antes de decidir.")
-
 
 # ----------------------------------------------------------------------------
 # Execução
@@ -670,6 +589,9 @@ def main():
     # 4. Gráficos
     plotar_distribuicao_sessao(base_sem_duplicatas)
     plotar_tendencias_temporais(base_horas_grupo)
+    
+    # 5. Exportação da base limpa para o Power BI
+    exportar_base_limpa(base_sem_duplicatas)
 
 
 if __name__ == '__main__':
