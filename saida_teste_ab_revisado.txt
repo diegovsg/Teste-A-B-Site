@@ -103,7 +103,7 @@ hour
   p_conversao_varia_por_hora_Nível 1: p 0,201
   p_volume_uniforme_Nível 1: p 0,590
 
-Existe uma tendência temporal. Como mostra a imagem, gerada pelo código, há um pico de acessos no início da tarde, das 12h às 15h. Porém, curiosamente, nesse mesmo período a taxa de conversão cai. Por outro lado, durante a manhã, tanto a quantidade de acessos quanto a conversão aumentam simultaneamente, o que sugere que este seja o horário de maior foco e propensão à conversão dos usuários que é entre 8h às 11h. Nesse intervalo, temos um alto volume de acessos acompanhado da nossa maior taxa de conversão, atingindo picos próximos a 60% e 67%
+Existe uma tendência temporal. Como mostra a imagem gerada pelo código, há um pico de acessos no início da tarde, das 14h às 15h, no tráfego do Nível 0. Porém, nesse mesmo período, a taxa de conversão cai para cerca de 44%. Por outro lado, durante a manhã, entre 8h e 11h, a quantidade de acessos e a conversão aumentam simultaneamente, o que sugere que esse seja o horário de maior propensão à conversão dos usuários. Nesse intervalo, há um alto volume de acessos acompanhado das maiores taxas de conversão, com picos próximos de 60% e 67%. O Nível 0 converte mais que o Nível 1 em todas as horas. Como os dados cobrem apenas 1 dia e o fuso horário é desconhecido, os horários devem ser tratados como hipótese a validar.
 
 --- Q5: Quais insights podem ser derivados dos dados para otimizar a navegação do site e aumentar o engajamento dos usuários? ---
 
