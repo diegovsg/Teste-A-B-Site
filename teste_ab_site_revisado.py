@@ -125,14 +125,14 @@ def auditar_base(base_sem_duplicatas: pd.DataFrame) -> dict:
     }
 
 
-def exportar_base_limpa(base_sem_duplicatas: pd.DataFrame, nome_arquivo_saida: str = 'ab_test_data_limpa.xlsx'):
+def exportar_base_limpa(base_sem_duplicatas: pd.DataFrame, nome_arquivo_saida: str = 'ab_test_data_sem_duplicatas.xlsx'):
     """
-    Exporta a base de dados tratada para Excel, removendo as duplicatas exatas 
-    e removendo as linhas com tempo de sessão nulo (null), para uso no Power BI.
+    Exporta a base tratada para Excel (uso no Power BI): sem duplicatas exatas.
+    Mantém os convertidos sem duração (nulos);
     """
-    base_para_exportacao = base_sem_duplicatas.dropna(subset=['session_duration']).copy()
-    base_para_exportacao.to_excel(nome_arquivo_saida, index=False)
-    print(f"\n[!] Base limpa exportada com sucesso para '{nome_arquivo_saida}' (Tamanho: {len(base_para_exportacao)} linhas).")
+    base_para_exportacao = base_sem_duplicatas.copy()
+    base_para_exportacao.to_excel(nome_arquivo_saida, index=False, sheet_name='ab_data')
+    print(f"\n[!] Base exportada com sucesso para '{nome_arquivo_saida}' (Tamanho: {len(base_para_exportacao)} linhas).")
 
 
 # ----------------------------------------------------------------------------
