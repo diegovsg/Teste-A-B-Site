@@ -14,6 +14,8 @@ Teste A/B do menu lateral: Nível 0 (acesso direto) x Nível 1 (sob aba geral).
 Dependências: pandas, numpy, matplotlib, seaborn, scipy, statsmodels
     pip install pandas numpy matplotlib seaborn scipy statsmodels openpyxl
 """
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -23,7 +25,27 @@ from scipy import stats
 from scipy.stats import chi2_contingency
 from statsmodels.stats.proportion import proportion_confint
 
-CAMINHO_ARQUIVO = 'ab_test_data 1.xlsx'
+# ----------------------------------------------------------------------------
+# Pastas do projeto
+#   Teste-A-B-Site/
+#     Arquivo Cru/                     <- base bruta (ab_test_data*.xlsx)
+#     ab_test_data_sem_duplicatas.xlsx <- base tratada, usada pelo Power BI (gerada por este código)
+#     teste_ab_site_revisado.py / .ipynb
+# ----------------------------------------------------------------------------
+PASTA_PROJETO = Path(__file__).resolve().parent
+PASTA_ARQUIVO_CRU = PASTA_PROJETO / 'Arquivo Cru'
+ARQUIVO_SAIDA = PASTA_PROJETO / 'ab_test_data_sem_duplicatas.xlsx'
+
+
+def localizar_arquivo_bruto() -> Path:
+    """Procura a base bruta (ab_test_data*.xlsx) em 'Arquivo Cru'; ignora arquivos já tratados."""
+    candidatos = [arquivo for arquivo in sorted(PASTA_ARQUIVO_CRU.glob('ab_test_data*.xlsx'))
+                  if not any(marca in arquivo.name.lower() for marca in ('limpa', 'sem_duplicatas'))]
+    if not candidatos:
+        raise FileNotFoundError(f"Nenhum 'ab_test_data*.xlsx' encontrado em: {PASTA_ARQUIVO_CRU}")
+    print(f'Base bruta: {candidatos[0]}')
+    return candidatos[0]
+
 GRUPO_NIVEL_0 = 'Nível 0'       # acesso direto à página (controle)
 GRUPO_NIVEL_1 = 'Nível 1'       # acesso sob a aba geral (nova escolha)
 NIVEL_SIGNIFICANCIA = 0.05      # p-valores abaixo disso são considerados significativos
@@ -125,7 +147,7 @@ def auditar_base(base_sem_duplicatas: pd.DataFrame) -> dict:
     }
 
 
-def exportar_base_limpa(base_sem_duplicatas: pd.DataFrame, nome_arquivo_saida: str = 'ab_test_data_sem_duplicatas.xlsx'):
+def exportar_base_limpa(base_sem_duplicatas: pd.DataFrame, nome_arquivo_saida: Path = ARQUIVO_SAIDA):
     """
     Exporta a base tratada para Excel (uso no Power BI): sem duplicatas exatas.
     Mantém os convertidos sem duração (nulos);
@@ -500,7 +522,7 @@ def main():
     pd.set_option('display.max_columns', 30)
 
     # 1. Carga, limpeza e auditoria
-    base_bruta = carregar_dados(CAMINHO_ARQUIVO)
+    base_bruta = carregar_dados(localizar_arquivo_bruto())
     base_sem_duplicatas, resumo_duplicatas = remover_duplicatas(base_bruta)
     auditoria = auditar_base(base_sem_duplicatas)
 
