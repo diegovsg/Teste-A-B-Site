@@ -1,15 +1,12 @@
 Storytelling: “Vitrine ou gaveta?”
-
-Fio condutor: a página de interesse é um produto. O teste decide se ele fica na vitrine (Nível 0, acesso direto no menu) ou dentro de uma gaveta (Nível 1, sob a aba geral).
+A página de interesse é um produto. O teste decide se ele fica na pagina principal (Nível 0, acesso direto no menu) ou dentro de um menu (Nível 1, sob a aba geral).
 Duração: 10 a 12 minutos.
 
-Abertura: aviso sobre a versão enviada (30s)
+Abertura: Aviso sobre a versão enviada (30s)
 
-Faça este aviso antes do Ato 1, para ninguém pegar a diferença sozinho:
-
+Arquivo enviado
 “Um aviso antes de começar: o dashboard que enviei para avaliação mostrava 2.173 acessos e 677 conversões. Ao revisar, vi que o BI ignorava 23 conversões sem duração de sessão medida. Corrigi: o total agora é 2.196 acessos e 700 conversões, batendo com o notebook. As taxas mudaram menos de um ponto percentual e a conclusão é exatamente a mesma.”
 
-Mostrar que você auditou o próprio trabalho antes da avaliação joga a seu favor. Fale com naturalidade, sem pedir desculpas em excesso.
 
 Ato 1. O problema de negócio (1 min)
 
