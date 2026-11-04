@@ -1,0 +1,74 @@
+Storytelling: “Vitrine ou gaveta?”
+
+Fio condutor: a página de interesse é um produto. O teste decide se ele fica na vitrine (Nível 0, acesso direto no menu) ou dentro de uma gaveta (Nível 1, sob a aba geral).
+Duração: 10 a 12 minutos.
+
+Abertura: aviso sobre a versão enviada (30s)
+
+Faça este aviso antes do Ato 1, para ninguém pegar a diferença sozinho:
+
+“Um aviso antes de começar: o dashboard que enviei para avaliação mostrava 2.173 acessos e 677 conversões. Ao revisar, vi que o BI ignorava 23 conversões sem duração de sessão medida. Corrigi: o total agora é 2.196 acessos e 700 conversões, batendo com o notebook. As taxas mudaram menos de um ponto percentual e a conclusão é exatamente a mesma.”
+
+Mostrar que você auditou o próprio trabalho antes da avaliação joga a seu favor. Fale com naturalidade, sem pedir desculpas em excesso.
+
+Ato 1. O problema de negócio (1 min)
+
+Fala: “Um menu lateral pode parecer um detalhe, mas decide se o usuário encontra ou não o que importa. A pergunta era: a página de interesse deve ficar direto no menu ou dentro da aba geral? Em vez de decidir por opinião, fizemos um teste A/B.”
+Visual: título do dashboard.
+
+Ato 2. O experimento (1 min)
+
+Fala: “Dois grupos: Nível 0, com a página direto no menu, e Nível 1, com a página sob a aba geral. A base bruta tinha 2.305 registros. Removi 109 duplicatas exatas e analisei 2.196 acessos, de 8 países e 3 tipos de dispositivo.”
+Visual: KPIs do topo da página “Teste AB”.
+
+Ato 3. O clímax: o resultado (2 min)
+
+Fala: “No acesso direto, 42% dos usuários chegaram à página. Na aba geral, 14%. São 27,8 pontos percentuais de diferença, com intervalo de confiança entre 24 e 31. Quem tinha a página direto no menu tinha 4,4 vezes mais chance de chegar a ela, e o p-valor é menor que 0,001. A página na vitrine converte três vezes mais que na gaveta.”
+Visual: gráfico “Tráfego total por grupo e status de conversão”.
+Dica: pause depois do 42% contra 14%.
+
+Ato 4. Além do clique: engajamento (1 min)
+
+Fala: “Quem chegou à página ficou em média 19,1 segundos no Nível 0 contra 11,2 no Nível 1. Considerando todos os acessos, são 7,9 segundos contra 1,5. A aba geral perde duas vezes: menos gente chega e quem chega fica menos.”
+Cuidado: a visão “quem chegou” compara públicos já filtrados. Por isso mostre também a visão por acesso, que é mais justa. Ambas são significativas (p < 0,001).
+
+Ato 5. Não é um caso isolado (2 min)
+
+Fala: “O Nível 0 vence em 8 de 8 países e em 3 de 3 dispositivos. No smartphone, 43% contra 16%. A Alemanha tem a maior diferença: 44% contra 4%. Refiz o teste em 4 cenários (com e sem duplicatas, só a primeira visita de cada usuário, só usuários de um grupo) e o resultado se manteve em todos, com diferenças entre 25 e 28 pontos. Ajustando por hora, dispositivo e país, o odds ratio quase não muda: 4,40 para 4,46.”
+Mensagem-chave: “O efeito não depende do dispositivo (interação p = 0,75). Ele vem do menu.”
+Visual: gráfico por aparelho e grupo, e a matriz por país.
+
+Ato 6. Quando as pessoas convertem (1 min)
+
+Fala: “O Nível 0 converte mais que o Nível 1 em todas as 24 horas. Entre 8h e 11h, volume e conversão sobem juntos, com picos de 60% e 67%. Às 14h e 15h há o maior tráfego, mas a conversão cai para cerca de 44%.”
+Ressalva obrigatória: “São dados de um único dia, com fuso horário desconhecido. Trato isso como hipótese a validar.”
+Visual: página “Teste AB – Tráfego e taxas”.
+
+Ato 7. O que ainda precisa de auditoria (1 min)
+
+Fala: “Encontrei quatro pontos de atenção:
+
+A divisão do tráfego foi 63,8% / 36,2%, e não 50/50, o que indica falha de alocação.
+As 109 duplicatas eram todas conversões, o que sugere um evento disparado duas vezes.
+332 user_ids aparecem nos dois grupos, e 87% dos IDs repetidos aparecem com países diferentes.
+A base cobre apenas 1 dia.
+
+Mesmo assim, testei a conclusão sem essas fragilidades e ela se mantém.”
+
+Ato 8. Recomendação e próximos passos (1–2 min)
+
+Fala:
+
+“Adotar o Nível 0, confirmando com mais dias de teste antes de migrar 100% da base.”
+“Auditar a alocação e o tracking: por que 63,8/36,2? O user_id é por usuário ou por sessão? Por que as conversões duplicaram?”
+“Validar o pico das 8h às 11h com mais dias e o fuso confirmado.”
+“Se confirmado, concentrar push, e-mail e campanhas nessa janela.”
+Fechamento (30s)
+
+“A página estava na gaveta. Quando a colocamos na vitrine, o acesso triplicou. Minha recomendação é mudar, confirmar com mais dados e corrigir o processo do teste para que o próximo seja ainda mais confiável.”
+
+Perguntas que podem aparecer
+“Por que o teste não foi 50/50? Isso não invalida?” Não invalida a direção: a diferença é de 28 p.p. e se mantém em todos os cenários. Mas indica um problema de alocação que precisa de auditoria.
+“Um dia de dados basta?” Para a direção do efeito, sim, porque a diferença é grande demais para ser ruído. Para horários e sazonalidade, não. Por isso recomendo estender o teste.
+“Por que o dashboard enviado tinha outros números?” O BI ignorava 23 conversões sem duração medida. Corrigi, e a diferença nas taxas foi menor que 1 p.p.
+“A diferença de tempo não é só porque mais gente chegou?” Por isso mostro as duas visões, e o teste de Mann-Whitney confirma a diferença em ambas.
